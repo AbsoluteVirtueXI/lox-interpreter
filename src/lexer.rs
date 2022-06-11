@@ -49,6 +49,55 @@ impl Lexer {
             '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
+            '!' => {
+                let is_ok = self.is_next('=');
+                self.add_token(if is_ok {
+                    TokenType::BangEqual
+                } else {
+                    TokenType::Bang
+                })
+            }
+            '=' => {
+                let is_ok = self.is_next('=');
+                self.add_token(if is_ok {
+                    TokenType::EqualEqual
+                } else {
+                    TokenType::Equal
+                })
+            }
+            '<' => {
+                let is_ok = self.is_next('=');
+                self.add_token(if is_ok {
+                    TokenType::LesserEqual
+                } else {
+                    TokenType::Lesser
+                })
+            }
+            '>' => {
+                let is_ok = self.is_next('=');
+                self.add_token(if is_ok {
+                    TokenType::GreaterEqual
+                } else {
+                    TokenType::Greater
+                })
+            }
+            '/' => {
+                let is_ok = self.is_next('/');
+                if is_ok {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash)
+                }
+            }
+            ' ' | '\r' | '\t' => {
+                // ignore whitespace
+            }
+            '\n' => {
+                self.line += 1;
+            }
+
             _ => return Err((self.line, "Unexpected character".to_string())),
         }
         Ok(())
@@ -58,6 +107,14 @@ impl Lexer {
         let current = self.current;
         self.current += 1;
         self.source.as_bytes()[current] as char
+    }
+
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            '\0'
+        } else {
+            self.source.as_bytes()[self.current] as char
+        }
     }
 
     fn add_token(&mut self, token_type: TokenType) {
@@ -72,5 +129,17 @@ impl Lexer {
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
+    }
+
+    fn is_next(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        if self.source.as_bytes()[self.current] as char != expected {
+            false
+        } else {
+            self.current += 1;
+            true
+        }
     }
 }
