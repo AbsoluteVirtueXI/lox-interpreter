@@ -27,7 +27,7 @@ impl Lox {
         }
     }
 
-    fn run_file(&self, file_name: &str) {
+    fn run_file(&mut self, file_name: &str) {
         let source = fs::read_to_string(file_name).expect("Can't read file");
         self.run(&source);
         if self.had_error {
@@ -47,9 +47,15 @@ impl Lox {
         }
     }
 
-    fn run(&self, source: &str) {
-        let lexer = Lexer::new();
-        let tokens = lexer.scan_tokens(source);
+    fn run(&mut self, source: &str) {
+        let mut lexer = Lexer::new(source);
+        let tokens = match lexer.scan_tokens() {
+            Ok(v) => v,
+            Err((line, msg)) => {
+                self.error(line, msg.clone());
+                vec![] // TODO: are we erasing all correct tokens here?
+            }
+        };
         for token in tokens {
             println!("{:?}", token);
         }
