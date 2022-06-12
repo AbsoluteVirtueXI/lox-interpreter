@@ -1,3 +1,5 @@
 // this is a comment
 (( )){} // grouping stuff
 !*+-/=<> <= == // operators
+"Hello world"
+123 456 7.89

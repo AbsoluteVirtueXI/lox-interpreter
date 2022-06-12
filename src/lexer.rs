@@ -97,8 +97,15 @@ impl Lexer {
             '\n' => {
                 self.line += 1;
             }
+            '"' => self.scan_string()?,
 
-            _ => return Err((self.line, "Unexpected character".to_string())),
+            _ => {
+                if c.is_numeric() {
+                    self.scan_number()?;
+                } else {
+                    return Err((self.line, "Unexpected character".to_string()));
+                }
+            }
         }
         Ok(())
     }
@@ -114,6 +121,14 @@ impl Lexer {
             '\0'
         } else {
             self.source.as_bytes()[self.current] as char
+        }
+    }
+
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            '\0'
+        } else {
+            self.source.as_bytes()[self.current + 1] as char
         }
     }
 
@@ -141,5 +156,44 @@ impl Lexer {
             self.current += 1;
             true
         }
+    }
+
+    fn scan_string(&mut self) -> Result<(), (usize, String)> {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            return Err((self.line, "Unterminated string.".to_string()));
+        }
+
+        self.advance();
+        let text = &self.source[self.start + 1..self.current - 1];
+        self.add_token_with_literal(TokenType::String, String::from(text));
+        Ok(())
+    }
+
+    fn scan_number(&mut self) -> Result<(), (usize, String)> {
+        while self.peek().is_numeric() {
+            self.advance();
+        }
+
+        if self.peek() == '.' && self.peek_next().is_numeric() {
+            // consume the "."
+            self.advance();
+            while self.peek().is_numeric() {
+                self.advance();
+            }
+        }
+
+        self.add_token_with_literal(
+            TokenType::Number,
+            self.source[self.start..self.current].to_string(), // TODO: maybe we can get a number directly here
+        );
+
+        Ok(())
     }
 }
