@@ -1,4 +1,5 @@
 use crate::{token::Token, token_type::TokenType};
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct Lexer {
@@ -7,11 +8,31 @@ pub struct Lexer {
     start: usize,
     current: usize,
     line: usize,
+    keywords: HashMap<String, TokenType>,
 }
 
 impl Lexer {
     pub fn new(source: &str) -> Self {
+        let mut keywords = HashMap::new();
+        keywords.insert("and".to_string(), TokenType::And);
+        keywords.insert("class".to_string(), TokenType::Class);
+        keywords.insert("else".to_string(), TokenType::Else);
+        keywords.insert("false".to_string(), TokenType::False);
+        keywords.insert("for".to_string(), TokenType::For);
+        keywords.insert("fun".to_string(), TokenType::Fun);
+        keywords.insert("if".to_string(), TokenType::If);
+        keywords.insert("nil".to_string(), TokenType::Nil);
+        keywords.insert("or".to_string(), TokenType::Or);
+        keywords.insert("print".to_string(), TokenType::Print);
+        keywords.insert("return".to_string(), TokenType::Return);
+        keywords.insert("super".to_string(), TokenType::Super);
+        keywords.insert("this".to_string(), TokenType::This);
+        keywords.insert("true".to_string(), TokenType::True);
+        keywords.insert("var".to_string(), TokenType::Var);
+        keywords.insert("while".to_string(), TokenType::While);
+
         Self {
+            keywords,
             source: String::from(source),
             tokens: vec![],
             start: 0,
@@ -102,6 +123,8 @@ impl Lexer {
             _ => {
                 if c.is_numeric() {
                     self.scan_number()?;
+                } else if is_identifier_first_char(c) {
+                    self.scan_identifier();
                 } else {
                     return Err((self.line, "Unexpected character".to_string()));
                 }
@@ -196,4 +219,25 @@ impl Lexer {
 
         Ok(())
     }
+
+    fn scan_identifier(&mut self) -> Result<(), (usize, String)> {
+        while is_identifier_char(self.peek()) {
+            self.advance();
+        }
+        let text = String::from(&self.source[self.start..self.current]);
+        let token_type = match self.keywords.get(&text) {
+            Some(token_type) => *token_type,
+            None => TokenType::Identifier,
+        };
+        self.add_token(token_type);
+        Ok(())
+    }
+}
+
+fn is_identifier_first_char(c: char) -> bool {
+    c.is_alphabetic() || c == '_'
+}
+
+fn is_identifier_char(c: char) -> bool {
+    is_identifier_first_char(c) || c.is_numeric()
 }
